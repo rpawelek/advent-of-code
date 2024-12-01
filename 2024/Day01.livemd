@@ -24,3 +24,22 @@ input
 |> Enum.map(fn {a, b} -> abs(a - b) end)
 |> Enum.sum()
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.split/1)
+|> Enum.map(fn [a, b] -> {String.to_integer(a), String.to_integer(b)} end)
+|> Enum.unzip()
+|> (fn {left_list, right_list} ->
+  frequencies = Enum.frequencies(right_list)
+
+  Enum.reduce(left_list, 0, fn num, acc ->
+    acc + (num * Map.get(frequencies, num, 0))
+  end)
+end).()
+```
