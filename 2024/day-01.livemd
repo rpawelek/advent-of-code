@@ -3,7 +3,7 @@
 ```elixir
 Mix.install([{:kino, github: "livebook-dev/kino"}])
 
-input = Kino.Input.textarea("Please paste your input file: ")
+kino_input = Kino.Input.textarea("Please paste your input file: ")
 ```
 
 ## Part 1
@@ -11,7 +11,7 @@ input = Kino.Input.textarea("Please paste your input file: ")
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-input = Kino.Input.read(input)
+input = Kino.Input.read(kino_input)
 
 input
 |> String.split("\n", trim: true)
@@ -30,6 +30,8 @@ input
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+input = Kino.Input.read(kino_input)
+
 input
 |> String.split("\n", trim: true)
 |> Enum.map(&String.split/1)
