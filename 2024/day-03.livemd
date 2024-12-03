@@ -1,0 +1,19 @@
+# Advent of Code 2024 - Day 03
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+Regex.scan(~r/mul\((\d+),(\d+)\)/, input)
+  |> Enum.map(fn [_, a, b] -> String.to_integer(a) * String.to_integer(b) end)
+  |> Enum.sum()
+```
