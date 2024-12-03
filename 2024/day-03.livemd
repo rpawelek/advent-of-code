@@ -13,7 +13,34 @@ kino_input = Kino.Input.textarea("Please paste your input file: ")
 ```elixir
 input = Kino.Input.read(kino_input)
 
-Regex.scan(~r/mul\((\d+),(\d+)\)/, input)
+regex = ~r/mul\((\d+),(\d+)\)/
+
+regex
+  |> Regex.scan(input)
   |> Enum.map(fn [_, a, b] -> String.to_integer(a) * String.to_integer(b) end)
   |> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+regex = ~r/mul\((\d+),(\d+)\)|do\(\)|don't\(\)/
+
+regex
+  |> Regex.scan(input)
+  |> Enum.reduce({true, 0}, fn
+    [_, a, b], {enabled, acc} when enabled ->
+      {enabled, acc + String.to_integer(a) * String.to_integer(b)}
+
+    ["do()"], {_enabled, acc} ->
+      {true, acc}
+
+    ["don't()"], {_enabled, acc} ->
+      {false, acc}
+
+    _, {enabled, acc} ->
+      {enabled, acc}
+  end)
 ```
