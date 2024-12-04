@@ -13,39 +13,87 @@ kino_input = Kino.Input.textarea("Please paste your input file: ")
 ```elixir
 input = Kino.Input.read(kino_input)
 
+directions = [
+  {0, -1},  # up
+  {0, 1},   # down
+  {1, 0},   # right
+  {-1, 0},  # left
+  {1, -1},  # up-right
+  {1, 1},   # down-right,
+  {-1, -1}, # up-left,
+  {-1, 1},  # down-left
+]
+
+grid = String.split(input, "\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+
 traverse = fn grid, x, y, {dx, dy}, length ->
   0..(length - 1)
   |> Enum.map(fn i ->
     nx = x + i * dx
     ny = y + i * dy
 
-    if nx in 0..(length(grid) - 1) && ny in 0..(length(List.first(grid)) - 1) do
-      Enum.at(Enum.at(grid, nx), ny)
+    if ny in 0..(length(grid) - 1) && nx in 0..(length(List.first(grid)) - 1) do
+      Enum.at(Enum.at(grid, ny), nx)
     else
       nil
     end
   end)
 end
 
+directions
+|> Enum.flat_map(fn direction ->
+  for y <- 0..(length(grid) - 1),
+      x <- 0..(length(List.first(grid)) - 1),
+      Enum.at(Enum.at(grid, y), x) == "X",
+      do: traverse.(grid, x, y, direction, 4)
+end)
+|> Enum.count(fn list -> list == String.graphemes("XMAS") end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
 directions = [
-  {1, 0},  # up
-  {-1, 0},  # down
-  {0, 1},   # right
-  {0, -1},  # left
-  {1, 1},   # up-right
-  {1, -1},  # up-left
-  {-1, 1},  # down-right
-  {-1, -1}, # down-left
+  [ {1, -1}, {-1, 1} ],   # up-right, down-left
+  [ {-1, -1}, {1, 1} ],   # up-left, down-right
 ]
 
 grid = String.split(input, "\n", trim: true)
   |> Enum.map(&String.graphemes/1)
 
-directions
-|> Enum.flat_map(fn direction ->
-  for x <- 0..(length(grid) - 1),
-      y <- 0..(length(List.first(grid)) - 1),
-      do: traverse.(grid, x, y, direction, 4)
-end)
-|> Enum.count(fn list -> list == String.graphemes("XMAS") end)
+valid_position = fn grid, x, y ->
+  y >= 0 && y < length(grid) && x >= 0 && x < length(List.first(grid))
+end
+
+match_pattern = fn grid, x, y ->
+  directions
+  |> Enum.all?(fn [{dx1, dy1}, {dx2, dy2}] ->
+    nx1 = x + dx1
+    ny1 = y + dy1
+    nx2 = x + dx2
+    ny2 = y + dy2
+
+    if valid_position.(grid, nx1, ny1) && valid_position.(grid, nx2, ny2) do
+      char1 = Enum.at(Enum.at(grid, ny1), nx1)
+      char2 = Enum.at(Enum.at(grid, ny2), nx2)
+
+      (char1 == "M" && char2 == "S") || (char1 == "S" && char2 == "M")
+    else
+      false
+    end
+  end)
+end
+
+matches = for y <- 1..(length(grid) - 2),
+    x <- 1..(length(List.first(grid)) - 2),
+    Enum.at(Enum.at(grid, y), x) == "A",
+    match_pattern.(grid, x, y),
+    do: {x, y}
+
+Enum.count(matches)
 ```
