@@ -1,0 +1,51 @@
+# Advent of Code 2024 - Day 04
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+traverse = fn grid, x, y, {dx, dy}, length ->
+  0..(length - 1)
+  |> Enum.map(fn i ->
+    nx = x + i * dx
+    ny = y + i * dy
+
+    if nx in 0..(length(grid) - 1) && ny in 0..(length(List.first(grid)) - 1) do
+      Enum.at(Enum.at(grid, nx), ny)
+    else
+      nil
+    end
+  end)
+end
+
+directions = [
+  {1, 0},  # up
+  {-1, 0},  # down
+  {0, 1},   # right
+  {0, -1},  # left
+  {1, 1},   # up-right
+  {1, -1},  # up-left
+  {-1, 1},  # down-right
+  {-1, -1}, # down-left
+]
+
+grid = String.split(input, "\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+
+directions
+|> Enum.flat_map(fn direction ->
+  for x <- 0..(length(grid) - 1),
+      y <- 0..(length(List.first(grid)) - 1),
+      do: traverse.(grid, x, y, direction, 4)
+end)
+|> Enum.count(fn list -> list == String.graphemes("XMAS") end)
+```
