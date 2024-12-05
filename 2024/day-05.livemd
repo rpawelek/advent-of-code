@@ -1,0 +1,58 @@
+# Advent of Code 2024 - Day 05
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+[ordering, updates] = input
+  |> String.split("\n\n", trim: true)
+  |> Enum.map(fn list -> String.split(list, "\n", trim: true) end)
+  |> then(fn [ordering_str, updates_str] -> 
+    [
+      ordering_str
+      |> Enum.map(fn pair ->
+        pair
+        |> String.split("|", trim: true)
+        |> Enum.map(&String.to_integer/1)
+      end)
+      |> Enum.reduce(%{}, fn [key, value], acc ->
+        Map.update(acc, key, [value], fn existing -> [value | existing] end)
+      end)
+      |> Enum.into(%{}),
+
+      updates_str
+      |> Enum.map(fn update ->
+        update
+        |> String.split(",", trim: true)
+        |> Enum.map(&String.to_integer/1)
+      end)
+    ]
+  end)
+
+updates
+|> Enum.filter(fn update ->
+  update
+  |> Enum.reduce_while([], fn page, acc ->
+    page_ordering = Map.get(ordering, page, [])
+    
+    case Enum.all?(page_ordering, fn later_page -> later_page not in acc end) do
+      true -> {:cont, [page | acc]}
+      false -> {:halt, false}
+    end
+  end)
+end)
+|> Enum.reduce(0, fn update, acc ->
+  middle_page = Enum.at(update, div(length(update), 2))
+  
+  acc + middle_page
+end)
+```
