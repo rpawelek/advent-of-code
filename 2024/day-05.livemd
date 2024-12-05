@@ -56,3 +56,71 @@ end)
   acc + middle_page
 end)
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+[ordering, updates] = input
+  |> String.split("\n\n", trim: true)
+  |> Enum.map(fn list -> String.split(list, "\n", trim: true) end)
+  |> then(fn [ordering_str, updates_str] -> 
+    [
+      ordering_str
+      |> Enum.map(fn pair ->
+        pair
+        |> String.split("|", trim: true)
+        |> Enum.map(&String.to_integer/1)
+      end)
+      |> Enum.reduce(%{}, fn [key, value], acc ->
+        Map.update(acc, key, [value], fn existing -> [value | existing] end)
+      end)
+      |> Enum.into(%{}),
+
+      updates_str
+      |> Enum.map(fn update ->
+        update
+        |> String.split(",", trim: true)
+        |> Enum.map(&String.to_integer/1)
+      end)
+    ]
+  end)
+
+
+proper_updates = updates
+  |> Enum.filter(fn update ->
+    update
+    |> Enum.reduce_while([], fn page, acc ->
+      page_ordering = Map.get(ordering, page, [])
+      
+      case Enum.all?(page_ordering, fn later_page -> later_page not in acc end) do
+        true -> {:cont, [page | acc]}
+        false -> {:halt, false}
+      end
+    end)
+  end)
+
+updates -- proper_updates
+|> Enum.map(fn update ->
+  update
+  |> Enum.reduce([], fn page, reordered_update ->
+    page_ordering = Map.get(ordering, page, [])
+
+    index = Enum.find_index(reordered_update, fn p -> !Enum.member?(page_ordering, p) || p == page end)
+    if index != :nil do
+      List.insert_at(reordered_update, index, page)
+    else
+      reordered_update ++ [page]
+    end
+  end)
+  |> Enum.reverse()
+end)
+|> Enum.reduce(0, fn update, acc ->
+  middle_page = Enum.at(update, div(length(update), 2))
+  
+  acc + middle_page
+end)
+```
