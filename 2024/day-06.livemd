@@ -47,7 +47,7 @@ directions = [:up, :right, :down, :left]
 
 Enum.reduce_while(Stream.iterate(nil, & &1), {[], {guard_x, guard_y}, initial_direction}, fn _, {visited_positions, {x, y}, direction} ->  
   if (x < 0 || y < 0) || (x > max_x || y > max_y) do
-    {:halt, visited_positions}
+    {:halt, Enum.uniq(visited_positions)}
   else    
     visited_positions = [{x, y} | visited_positions]
     
@@ -67,6 +67,90 @@ Enum.reduce_while(Stream.iterate(nil, & &1), {[], {guard_x, guard_y}, initial_di
     end
   end
 end)
-|> Enum.uniq()
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+grid = 
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.with_index()
+  |> Enum.flat_map(fn {row, y} ->
+    row
+    |> String.graphemes()
+    |> Enum.with_index()
+    |> Enum.map(fn {char, x} -> {{x, y}, char} end)
+  end)
+  |> Enum.into(%{})
+
+directions = [:up, :right, :down, :left]
+
+{{guard_x, guard_y}, initial_direction} =
+  grid
+  |> Enum.find(fn {_, char} -> char in ["^", ">", "v", "<"] end)
+  |> then(fn {{x, y}, dir} ->
+    direction =
+      case dir do
+        "^" -> :up
+        ">" -> :right
+        "<" -> :left
+        "v" -> :down
+      end
+
+    {{x, y}, direction}
+  end)
+
+simulate = fn grid, {initial_x, initial_y}, initial_direction ->
+  max_x = grid |> Map.keys() |> Enum.map(&elem(&1, 0)) |> Enum.max()
+  max_y = grid |> Map.keys() |> Enum.map(&elem(&1, 1)) |> Enum.max()
+  
+  Enum.reduce_while(Stream.iterate(0, & &1), {[], {initial_x, initial_y}, initial_direction}, fn _, {visited_positions, {x, y}, direction} ->
+    if (x < 0 || y < 0) || (x > max_x || y > max_y) do
+      {:halt, {visited_positions, true}}
+    else
+      if Enum.member?(visited_positions, {{x, y}, direction}) do
+        {:halt, {visited_positions, false}}
+      else
+        visited_positions = [{{x, y}, direction} | visited_positions]
+
+        next_position =
+          case direction do
+            :up    -> {x, y - 1}
+            :right -> {x + 1, y}
+            :left  -> {x - 1, y}
+            :down  -> {x, y + 1}
+          end
+
+        if Map.get(grid, next_position, ".") == "#" do
+          new_direction = Enum.at(directions, rem(Enum.find_index(directions, &(&1 == direction)) + 1, 4))
+          {:cont, {visited_positions, {x, y}, new_direction}}
+        else
+          {:cont, {visited_positions, next_position, direction}}
+        end
+      end
+    end
+  end)
+end
+
+simulate.(grid, {guard_x, guard_y}, initial_direction)
+|> elem(0)
+|> Enum.uniq_by(fn {{x, y}, _direction} ->
+  {x, y}
+end)
+|> Enum.filter(fn {{x, y}, _direction} ->
+  {x, y} != {guard_x, guard_y}
+end)
+|> Enum.reduce([], fn {current_position, _direction}, acc ->
+  new_grid = Map.put(grid, current_position, "#")
+
+  case elem(simulate.(new_grid, {guard_x, guard_y}, initial_direction), 1) do
+    true -> acc
+    false -> [current_position | acc]
+  end
+end)
 |> Enum.count()
 ```
