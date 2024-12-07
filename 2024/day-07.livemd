@@ -1,0 +1,44 @@
+# Advent of Code 2024 - Day 07
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(fn equation ->
+  equation
+  |> String.split(": ")
+  |> then(fn [test_value, numbers] ->
+    {
+      String.to_integer(test_value),
+      numbers
+      |> String.split()
+      |> Enum.map(&String.to_integer/1)
+    }
+  end)
+end)
+|> Enum.filter(fn {test_value, numbers} ->
+  Enum.reduce(tl(numbers), [hd(numbers)], fn next, acc ->
+    Enum.flat_map(acc, fn current ->
+      [
+        current + next,
+        current * next,
+      ]
+    end)
+  end)
+  |> Enum.member?(test_value)
+end)
+|> Enum.reduce(0, fn {test_value, _}, acc ->
+  acc + test_value
+end)
+```
