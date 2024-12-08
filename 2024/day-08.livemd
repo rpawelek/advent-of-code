@@ -48,3 +48,53 @@ input
 end)
 |> Enum.count()
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.graphemes/1)
+|> then(fn grid ->
+  Enum.flat_map(0..(length(grid) - 1), fn y ->
+    Enum.reduce(0..(length(hd(grid)) - 1), [], fn x, acc ->
+      case Enum.at(Enum.at(grid, y), x) do
+        "." -> acc
+        freq -> [{freq, x, y} | acc]
+      end
+    end)
+  end)
+  |> then(fn antennas ->
+    in_bounds? = fn {x, y}, grid ->
+      y >= 0 && y < length(grid) && x >= 0 && x < length(hd(grid))
+    end
+    
+    for {freq1, x1, y1} <- antennas,
+        {freq2, x2, y2} <- antennas,
+        freq1 == freq2 && {x1, y1} != {x2, y2} do
+      dx = x2 - x1
+      dy = y2 - y1
+
+        
+      antinode1 = 
+        {x1, y1}
+        |> Stream.iterate(fn {x, y} -> {x + dx, y + dy} end)
+        |> Enum.take_while(&in_bounds?.(&1, grid))
+
+      antinode2 = 
+        {x2, y2}
+        |> Stream.iterate(fn {x, y} -> {x - dx, y - dy} end)
+        |> Enum.take_while(&in_bounds?.(&1, grid))
+
+      [antinode1, antinode2]
+    end
+    |> List.flatten()
+    |> Enum.uniq()
+  end)
+end)
+|> Enum.count()
+```
