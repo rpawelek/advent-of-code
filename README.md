@@ -14,7 +14,7 @@ All solutions are coded in [Livebook](https://livebook.dev) using [Kino](https:/
 - [x] [Day 06](2024/day-06.livemd)
 - [x] [Day 07](2024/day-07.livemd)
 - [x] [Day 08](2024/day-08.livemd)
-- [ ] [Day 09](#)
+- [x] [Day 09](2024/day-09.livemd)
 - [ ] [Day 10](#)
 - [ ] [Day 11](#)
 - [ ] [Day 12](#)

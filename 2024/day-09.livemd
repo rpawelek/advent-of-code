@@ -1,0 +1,110 @@
+# Advent of Code - Day 09
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.trim()
+|> String.split("", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Enum.chunk_every(2, 2, [0])
+|> Enum.with_index()
+|> Enum.flat_map(fn {[blocks, free_space], id} -> 
+  [List.duplicate(id, blocks), List.duplicate(nil, free_space)] |> List.flatten()
+end)
+|> then(fn disk_map ->
+  compacted_disk_map = disk_map
+    |> Enum.reduce_while({[], disk_map |> Enum.filter(& &1) |> Enum.reverse()}, fn val, {acc, map} ->
+      if Enum.empty?(map) do
+        {:halt, acc}
+      else
+        case val do
+          nil -> {:cont, {[hd(map) | acc], tl(map)}}
+          val -> {:cont, {[val | acc], List.delete_at(map, -1)}}
+        end
+      end
+    end)
+
+  disk_length = length(compacted_disk_map)
+
+  compacted_disk_map
+  |> Enum.with_index()
+  |> Enum.reduce(0, fn {block, id}, acc ->
+    acc + block * (disk_length - id - 1)
+  end)
+end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+# gave up, https://github.com/Flo0807/adventofcode/blob/main/2024/09.livemd
+defmodule PlaceFinder do
+  def fill_blocks(blocks, acc \\ [])
+  def fill_blocks([], acc), do: List.flatten(acc)
+
+  def fill_blocks([[first | _rest] = block | rest], acc) when first == "." do
+    case find_suitable_block(rest, length(block)) do
+      nil ->
+        fill_blocks(rest, acc ++ [block])
+
+      {num_block, index} ->
+        extra_dots = length(block) - length(num_block)
+        remaining_dots = if extra_dots > 0, do: [List.duplicate(".", extra_dots)], else: []
+        new_rest = List.replace_at(rest, index, List.duplicate(".", length(num_block)))
+        fill_blocks(remaining_dots ++ new_rest, acc ++ [num_block])
+    end
+  end
+
+  def fill_blocks([block | rest], acc), do: fill_blocks(rest, acc ++ [block])
+
+  defp find_suitable_block(blocks, dot_size) do
+    blocks
+    |> Enum.reverse()
+    |> Enum.with_index()
+    |> Enum.find(fn {[first | _] = list, _} ->
+      first != "." && length(list) <= dot_size
+    end)
+    |> case do
+      nil -> nil
+      {block, i} -> {block, length(blocks) - 1 - i}
+    end
+  end
+end
+
+input
+|> String.trim()
+|> String.split("", trim: true)
+|> Enum.chunk_every(2, 2)
+|> Enum.with_index()
+|> Enum.flat_map(fn
+  {[file, space], i} ->
+    List.duplicate("#{i}", String.to_integer(file)) ++
+      List.duplicate(".", String.to_integer(space))
+
+  {[file], i} ->
+    List.duplicate("#{i}", String.to_integer(file))
+end)
+|> Enum.chunk_by(&(&1 == "."))
+|> Enum.flat_map(fn el -> Enum.chunk_by(el, & &1) end)
+|> PlaceFinder.fill_blocks()
+|> Enum.with_index()
+|> Enum.reduce(0, fn
+  {value, id}, acc when value != "." -> acc + id * String.to_integer(value)
+  _, acc -> acc
+end)
+```
