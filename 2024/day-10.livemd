@@ -1,7 +1,10 @@
 # Advent of Code 2024 - Day 10
 
 ```elixir
-Mix.install([{:kino, github: "livebook-dev/kino"}])
+Mix.install([
+  {:kino, github: "livebook-dev/kino"},
+  {:libgraph, "~> 0.16.0"},
+])
 
 kino_input = Kino.Input.textarea("Please paste your input file: ")
 ```
@@ -13,44 +16,64 @@ kino_input = Kino.Input.textarea("Please paste your input file: ")
 ```elixir
 input = Kino.Input.read(kino_input)
 
-defmodule TrailheadChecker do
-  def trailhead_scores(map) do
-    map[0]
-    |> Enum.map(fn coords ->
-      score = count_reachable_nines(map, coords, [])
-      {coords, score}
-    end)
-  end
-
-  defp count_reachable_nines(map, {x, y}, visited) do
-    traverse(map, {x, y}, 0, visited)
-    |> Enum.filter(&(&1 in Map.get(map, 9, [])))
-    |> Enum.uniq()
-    |> Enum.count()
-  end
-
-  defp traverse(_digit_positions, _coords, -1, _visited), do: []
-  defp traverse(digit_positions, {x, y}, current_height, visited) do
-    if {x, y} in visited do
-      []
-    else
-      next_height = current_height + 1
-
-      neighbors = [
-        {x - 1, y}, {x + 1, y}, {x, y - 1}, {x, y + 1}
-      ]
-
-      neighbors
-      |> Enum.filter(&(&1 in Map.get(digit_positions, next_height, [])))
-      |> Enum.reduce(
-        [{x, y} | visited],
-        fn coord, acc ->
-          acc ++ traverse(digit_positions, coord, next_height, [{x, y} | acc])
-        end
-      )
+input
+|> String.split("\n", trim: true)
+|> Enum.with_index()
+|> Enum.reduce(%{}, fn {row, row_index}, map ->
+  row
+  |> String.graphemes()
+  |> Enum.with_index()
+  |> Enum.reduce(map, fn {char, column_index}, acc ->
+    case Integer.parse(char) do
+      {digit, ""} ->
+        Map.put(acc, {column_index, row_index}, digit)
+      _ -> acc
     end
-  end
-end
+  end)
+end)
+|> then(fn digit_positions ->
+  graph =
+    digit_positions
+    |> Enum.reduce(Graph.new(type: :directed), fn {coords, _}, g ->
+      g |> Graph.add_vertex(coords)
+    end)
+
+  graph =
+    Enum.reduce(digit_positions, graph, fn {{x1, y1} = coords1, n}, g ->
+      [{x1, y1 - 1}, {x1, y1 + 1}, {x1 - 1, y1}, {x1 + 1, y1}]
+      |> Enum.reduce(g, fn coords2, acc ->
+        if Map.get(digit_positions, coords2) == n + 1 do
+          Graph.add_edge(acc, coords1, coords2)
+        else
+          acc
+        end
+      end)
+    end)
+
+  positions_0 = 
+    digit_positions
+    |> Enum.filter(&elem(&1, 1) == 0)
+    |> Enum.map(&elem(&1, 0))
+  
+  positions_9 = 
+    digit_positions
+    |> Enum.filter(&elem(&1, 1) == 9)
+    |> Enum.map(&elem(&1, 0))
+
+  for start <- positions_0,
+    dest <- positions_9,
+    Graph.get_paths(graph, start, dest) != [],
+    reduce: 0,
+    do: (sum -> sum + 1)
+end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
 
 input
 |> String.split("\n", trim: true)
@@ -62,11 +85,44 @@ input
   |> Enum.reduce(map, fn {char, column_index}, acc ->
     case Integer.parse(char) do
       {digit, ""} ->
-        Map.update(acc, digit, [{column_index, row_index}], &[{column_index, row_index} | &1])
+        Map.put(acc, {column_index, row_index}, digit)
       _ -> acc
     end
   end)
 end)
-|> TrailheadChecker.trailhead_scores()
-|> Enum.reduce(0, fn {_, score}, sum -> sum + score end)
+|> then(fn digit_positions ->
+  graph =
+    digit_positions
+    |> Enum.reduce(Graph.new(type: :directed), fn {coords, _}, g ->
+      g |> Graph.add_vertex(coords)
+    end)
+
+  graph =
+    Enum.reduce(digit_positions, graph, fn {{x1, y1} = coords1, n}, g ->
+      [{x1, y1 - 1}, {x1, y1 + 1}, {x1 - 1, y1}, {x1 + 1, y1}]
+      |> Enum.reduce(g, fn coords2, acc ->
+        if Map.get(digit_positions, coords2) == n + 1 do
+          Graph.add_edge(acc, coords1, coords2)
+        else
+          acc
+        end
+      end)
+    end)
+
+  positions_0 = 
+    digit_positions
+    |> Enum.filter(&elem(&1, 1) == 0)
+    |> Enum.map(&elem(&1, 0))
+  
+  positions_9 = 
+    digit_positions
+    |> Enum.filter(&elem(&1, 1) == 9)
+    |> Enum.map(&elem(&1, 0))
+
+  for start <- positions_0,
+    dest <- positions_9,
+    paths = Graph.get_paths(graph, start, dest),
+    reduce: 0,
+    do: (sum -> sum + length(paths))
+end)
 ```
