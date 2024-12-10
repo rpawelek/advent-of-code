@@ -1,0 +1,72 @@
+# Advent of Code 2024 - Day 10
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule TrailheadChecker do
+  def trailhead_scores(map) do
+    map[0]
+    |> Enum.map(fn coords ->
+      score = count_reachable_nines(map, coords, [])
+      {coords, score}
+    end)
+  end
+
+  defp count_reachable_nines(map, {x, y}, visited) do
+    traverse(map, {x, y}, 0, visited)
+    |> Enum.filter(&(&1 in Map.get(map, 9, [])))
+    |> Enum.uniq()
+    |> Enum.count()
+  end
+
+  defp traverse(_digit_positions, _coords, -1, _visited), do: []
+  defp traverse(digit_positions, {x, y}, current_height, visited) do
+    if {x, y} in visited do
+      []
+    else
+      next_height = current_height + 1
+
+      neighbors = [
+        {x - 1, y}, {x + 1, y}, {x, y - 1}, {x, y + 1}
+      ]
+
+      neighbors
+      |> Enum.filter(&(&1 in Map.get(digit_positions, next_height, [])))
+      |> Enum.reduce(
+        [{x, y} | visited],
+        fn coord, acc ->
+          acc ++ traverse(digit_positions, coord, next_height, [{x, y} | acc])
+        end
+      )
+    end
+  end
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.with_index()
+|> Enum.reduce(%{}, fn {row, row_index}, map ->
+  row
+  |> String.graphemes()
+  |> Enum.with_index()
+  |> Enum.reduce(map, fn {char, column_index}, acc ->
+    case Integer.parse(char) do
+      {digit, ""} ->
+        Map.update(acc, digit, [{column_index, row_index}], &[{column_index, row_index} | &1])
+      _ -> acc
+    end
+  end)
+end)
+|> TrailheadChecker.trailhead_scores()
+|> Enum.reduce(0, fn {_, score}, sum -> sum + score end)
+```
