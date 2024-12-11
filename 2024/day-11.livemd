@@ -41,3 +41,56 @@ input
 |> Blinker.blink(25)
 |> Enum.count()
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule Blinker2 do
+  def blink(arrangement, 0), do: arrangement
+  
+  def blink(arrangement, count) do
+    new_arrangement =
+      arrangement
+      |> Map.to_list()
+      |> do_blink(%{})
+
+    blink(new_arrangement, count - 1)
+  end
+
+  def do_blink([], acc), do: acc
+
+  def do_blink([{0, count} |  rest], acc) do
+    do_blink(rest, Map.update(acc, 1, count, &(&1 + count)))
+  end
+
+  def do_blink([{stone_engraving, count} | rest], acc) do
+    digits = Integer.digits(stone_engraving)
+
+    if rem(Enum.count(digits), 2) == 0 do
+      {half1, half2} = Enum.split(digits, div(Enum.count(digits), 2))
+
+      new_acc =
+        acc
+        |> Map.update(Integer.undigits(half1), count, &(&1 + count))
+        |> Map.update(Integer.undigits(half2), count, &(&1 + count))
+
+      do_blink(rest, new_acc)
+    else
+      do_blink(rest, Map.update(acc, stone_engraving * 2024, count, &(&1 + count)))
+    end
+  end
+end
+
+input
+|> String.split(" ")
+|> Enum.reduce(%{}, fn stone_engraving, acc ->
+  Map.update(acc, String.to_integer(stone_engraving), 1, &(&1 + 1))
+end)
+|> Blinker2.blink(75)
+|> Map.values()
+|> Enum.sum()
+```
