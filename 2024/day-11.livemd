@@ -1,0 +1,43 @@
+# Advent of Code - Day 11
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule Blinker do
+  def blink(arrangement, 0), do: arrangement
+  
+  def blink(arrangement, count) do
+    new_arrangement = 
+      arrangement
+      |> Enum.flat_map(fn stone_engraving -> 
+        case Integer.digits(stone_engraving) do
+          [0] -> [1]
+            
+          digits when rem(length(digits), 2) == 0 ->
+            {half1, half2} = Enum.split(digits, div(length(digits), 2))
+            [Integer.undigits(half1), Integer.undigits(half2)]
+            
+          _ -> [stone_engraving * 2024]
+        end
+      end)
+
+    blink(new_arrangement, count - 1)
+  end
+end
+
+input
+|> String.split(" ")
+|> Enum.map(&String.to_integer/1)
+|> Blinker.blink(25)
+|> Enum.count()
+```
