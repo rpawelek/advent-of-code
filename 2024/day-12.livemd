@@ -1,0 +1,102 @@
+# Advent of Code 2024 - Day 12
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule Garden do
+  def regions(garden_map) do
+    garden_map
+    |> compute_regions([])
+    |> Enum.map(&MapSet.new/1)
+  end
+
+  def area(region) do
+    MapSet.size(region)
+  end
+
+  def perimeter(region) do    
+    region
+    |> Enum.filter(fn tile ->
+      Enum.any?(
+        [
+          {elem(tile, 0) - 1, elem(tile, 1)},  # up
+          {elem(tile, 0) + 1, elem(tile, 1)},  # down
+          {elem(tile, 0), elem(tile, 1) - 1},  # left
+          {elem(tile, 0), elem(tile, 1) + 1}   # right
+        ],
+        &(&1 not in region)
+      )
+    end)
+    |> Enum.map(fn tile ->
+      Enum.count(
+        [
+          {elem(tile, 0) - 1, elem(tile, 1)},  # up
+          {elem(tile, 0) + 1, elem(tile, 1)},  # down
+          {elem(tile, 0), elem(tile, 1) - 1},  # left
+          {elem(tile, 0), elem(tile, 1) + 1}   # right
+        ],
+        &(&1 not in region)
+      )
+    end)
+    |> Enum.sum()
+  end
+
+
+  defp compute_regions(garden_map, acc) when map_size(garden_map) == 0 do
+    acc
+  end
+
+  defp compute_regions(garden_map, acc) do
+    {coords, plant} = Enum.at(garden_map, 0)
+    {region, garden} = search_region(garden_map, plant, coords, [])
+    
+    compute_regions(garden, [region | acc])
+  end
+
+  defp search_region(garden, plant, tile, acc) do
+    if garden[tile] == plant do
+      garden = Map.delete(garden, tile)
+      acc = [tile | acc]
+      
+      neighbors = [
+      {elem(tile, 0) - 1, elem(tile, 1)},  # up
+      {elem(tile, 0) + 1, elem(tile, 1)},  # down
+      {elem(tile, 0), elem(tile, 1) - 1},  # left
+      {elem(tile, 0), elem(tile, 1) + 1}   # right
+    ]
+
+      Enum.reduce(neighbors, {acc, garden}, fn neighbor, {acc, garden} ->
+        search_region(garden, plant, neighbor, acc)
+      end)
+    else
+      {acc, garden}
+    end
+  end
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_charlist/1)
+|> Enum.with_index()
+|> Enum.reduce(%{}, fn {row, row_index}, acc ->
+  row
+  |> Enum.with_index()
+  |> Enum.reduce(acc, fn {plant, column_index}, inner_acc ->
+    Map.put(inner_acc, {row_index, column_index}, plant)
+  end)
+end)
+|> Garden.regions()
+|> Enum.reduce(0, fn region, acc ->
+  acc + Garden.area(region) * Garden.perimeter(region)
+end)
+```
