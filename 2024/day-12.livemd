@@ -51,7 +51,6 @@ defmodule Garden do
     |> Enum.sum()
   end
 
-
   defp compute_regions(garden_map, acc) when map_size(garden_map) == 0 do
     acc
   end
@@ -98,5 +97,136 @@ end)
 |> Garden.regions()
 |> Enum.reduce(0, fn region, acc ->
   acc + Garden.area(region) * Garden.perimeter(region)
+end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule Garden2 do
+  def regions(garden_map) do
+    garden_map
+    |> compute_regions([])
+    |> Enum.map(&MapSet.new/1)
+  end
+
+  def area(region) do
+    MapSet.size(region)
+  end
+
+  def sides(region) do
+    border_tiles =
+      region
+      |> border_tiles()
+      |> Enum.flat_map(fn tile ->
+        {y, x} = tile
+        
+        acc = if {y - 1, x} in region, do: [], else: [{tile, :up}]
+        acc = if {y + 1, x} in region, do: acc, else: [{tile, :down} | acc]
+        acc = if {y, x - 1} in region, do: acc, else: [{tile, :left} | acc]
+        if {y, x + 1} in region, do: acc, else: [{tile, :right} | acc]
+      end)
+      |> MapSet.new()
+
+    count_sides(border_tiles, 0)
+  end
+
+  defp count_sides(border_tiles, acc) do
+    if MapSet.size(border_tiles) == 0 do
+      acc
+    else
+      {tile, dir} = Enum.min(border_tiles)
+      border_tiles = remove_border(border_tiles, {tile, dir})
+      count_sides(border_tiles, acc + 1)
+    end
+  end
+
+  defp remove_border(border_tiles, {tile, dir} = entry) when dir in [:up, :down] do
+    if entry in border_tiles do
+      border_tiles = MapSet.delete(border_tiles, entry)
+      {y, x} = tile
+      remove_border(border_tiles, {{y, x + 1}, dir})
+    else
+      border_tiles
+    end
+  end
+
+  defp remove_border(border_tiles, {tile, dir} = entry) when dir in [:left, :right] do
+    if entry in border_tiles do
+      border_tiles = MapSet.delete(border_tiles, entry)
+      {y, x} = tile
+      remove_border(border_tiles, {{y + 1, x}, dir})
+    else
+      border_tiles
+    end
+  end
+
+  defp border_tiles(region) do
+    Enum.filter(region, fn tile ->
+      tile
+      |> neighbors()
+      |> Enum.any?(& &1 not in region)
+    end)
+  end
+
+  defp neighbors({i, j}) do
+    [
+      {i - 1, j},  # up
+      {i + 1, j},  # down
+      {i, j - 1},  # left
+      {i, j + 1}   # right
+    ]
+  end
+
+  defp compute_regions(garden_map, acc) when map_size(garden_map) == 0 do
+    acc
+  end
+
+  defp compute_regions(garden_map, acc) do
+    {coords, plant} = Enum.at(garden_map, 0)
+    {region, garden} = search_region(garden_map, plant, coords, [])
+    
+    compute_regions(garden, [region | acc])
+  end
+
+  defp search_region(garden, plant, tile, acc) do
+    if garden[tile] == plant do
+      garden = Map.delete(garden, tile)
+      acc = [tile | acc]
+      
+      neighbors = [
+      {elem(tile, 0) - 1, elem(tile, 1)},  # up
+      {elem(tile, 0) + 1, elem(tile, 1)},  # down
+      {elem(tile, 0), elem(tile, 1) - 1},  # left
+      {elem(tile, 0), elem(tile, 1) + 1}   # right
+    ]
+
+      Enum.reduce(neighbors, {acc, garden}, fn neighbor, {acc, garden} ->
+        search_region(garden, plant, neighbor, acc)
+      end)
+    else
+      {acc, garden}
+    end
+  end
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_charlist/1)
+|> Enum.with_index()
+|> Enum.reduce(%{}, fn {row, row_index}, acc ->
+  row
+  |> Enum.with_index()
+  |> Enum.reduce(acc, fn {plant, column_index}, inner_acc ->
+    Map.put(inner_acc, {row_index, column_index}, plant)
+  end)
+end)
+|> Garden2.regions()
+|> Enum.reduce(0, fn region, acc ->
+  acc + Garden2.area(region) * Garden2.sides(region)
 end)
 ```
