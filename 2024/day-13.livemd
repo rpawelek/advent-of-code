@@ -33,3 +33,33 @@ end)
 end)
 |> trunc()
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n\n", trim: true)
+|> Enum.map(fn machines -> 
+  Regex.scan(~r/\d+/, machines)
+  |> Enum.map(&String.to_integer(hd(&1)))
+  |> then(fn [ax, ay, bx, by, target_x, target_y] ->
+    target_x = target_x + 10000000000000
+    target_y = target_y + 10000000000000
+    
+    a_button_presses = (target_x * by - target_y * bx) / (ax * by - ay * bx)
+    b_button_presses = (target_x - ax * a_button_presses) / bx
+  
+    [a_button_presses, b_button_presses]
+  end)
+end)
+|> Enum.filter(fn [num_a, num_b] -> num_a == trunc(num_a) && num_b == trunc(num_b) end)
+|> Enum.map(&List.to_tuple/1)
+|> Enum.reduce(0, fn {a_button_presses, b_button_presses}, sum ->
+  sum + a_button_presses * 3 + b_button_presses
+end)
+|> trunc()
+```
