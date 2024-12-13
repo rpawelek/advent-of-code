@@ -1,0 +1,35 @@
+# Advent of Code - Day 13
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n\n", trim: true)
+|> Enum.map(fn machines -> 
+  Regex.scan(~r/\d+/, machines)
+  |> Enum.map(&String.to_integer(hd(&1)))
+  |> then(fn [ax, ay, bx, by, target_x, target_y] ->
+    a_button_presses = (target_x * by - target_y * bx) / (ax * by - ay * bx)
+    b_button_presses = (target_x - ax * a_button_presses) / bx
+  
+    [a_button_presses, b_button_presses]
+    |> Enum.filter(fn num -> num == trunc(num) end)
+  end)
+end)
+|> Enum.reject(&(&1 == []))
+|> Enum.map(&List.to_tuple/1)
+|> Enum.reduce(0, fn {a_button_presses, b_button_presses}, sum ->
+  sum + a_button_presses * 3 + b_button_presses
+end)
+|> trunc()
+```
