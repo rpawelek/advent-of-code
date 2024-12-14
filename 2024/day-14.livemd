@@ -1,0 +1,45 @@
+# Advent of Code 2024 - Day 14
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+max_x = 101
+max_y = 103
+steps = 100
+
+x = input
+|> String.split("\n", trim: true)
+|> Enum.map(fn robot_info ->
+  Regex.scan(~r/-?\d+/, robot_info)
+  |> Enum.map(&String.to_integer(hd(&1)))
+end)
+|> Enum.reduce([], fn [x, y, vx, vy], acc ->
+  final_x = Integer.mod(x + vx * steps, max_x)
+  final_y = Integer.mod(y + vy * steps, max_y)
+
+  [{final_x, final_y} | acc]
+end)
+|> Enum.reduce({0, 0, 0, 0}, fn {x, y}, {q1, q2, q3, q4} ->
+  mid_x = div(max_x, 2)
+  mid_y = div(max_y, 2)
+
+  cond do
+    x < mid_x and y < mid_y -> {q1 + 1, q2, q3, q4}
+    x < mid_x and y > mid_y -> {q1, q2 + 1, q3, q4}
+    x > mid_x and y < mid_y -> {q1, q2, q3 + 1, q4}
+    x > mid_x and y > mid_y -> {q1, q2, q3, q4 + 1}
+    true -> {q1, q2, q3, q4}
+  end
+end)
+|> Tuple.product()
+```
