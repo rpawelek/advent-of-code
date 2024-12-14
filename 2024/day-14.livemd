@@ -43,3 +43,61 @@ end)
 end)
 |> Tuple.product()
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+# Need to run this part in IEx
+input = Kino.Input.read(kino_input)
+
+max_x = 101
+max_y = 103
+steps = 100
+
+# stole idea from https://git.adamu.jp/adam/AdventOfCode/src/branch/main/2024/day14.exs
+defmodule TreeChecker do
+  def find_tree(positions, max_x, max_y, count \\ 27, acc \\ 27) do
+    positions = step(positions, max_x, max_y, count)
+    positions_map = MapSet.new(positions, fn [x, y, _, _] -> {x, y} end)
+    
+    for y <- 0..(max_y - 1) do
+      for x <- 0..(max_x - 1) do
+        if MapSet.member?(positions_map, {x, y}) do
+          IO.write("X")
+        else
+          IO.write(" ")
+        end
+      end
+
+      IO.puts("|")
+    end
+
+    line = IO.gets("#{acc} tree? [y/N]?")
+
+    if line |> String.trim() |> String.downcase() == "y" do
+      acc
+    else
+      find_tree(positions, max_x, max_y, 101, acc + 101)
+    end
+  end
+
+  defp step(positions, max_x, max_y, steps) do
+    Enum.map(positions, fn [x, y, vx, vy] ->
+      final_x = Integer.mod(x + vx * steps, max_x)
+      final_y = Integer.mod(y + vy * steps, max_y)
+
+      [final_x, final_y, vx, vy]
+    end)
+  end
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(fn robot_info ->
+  Regex.scan(~r/-?\d+/, robot_info)
+  |> Enum.map(&String.to_integer(hd(&1)))
+end)
+|> TreeChecker.find_tree(max_x, max_y)
+```
