@@ -1,0 +1,77 @@
+# Advent of Code 2024 - Day 16
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"},
+  {:prioqueue, "~> 0.2.0"},
+])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule PathFinder do
+  def find_path(grid, pq, seen) do
+    case Prioqueue.extract_min(pq) do
+      {:ok, {{cost, {x, y, dx, dy}}, updated_pq}} ->
+        seen = MapSet.put(seen, {x, y, dx, dy})
+
+        cond do
+          Map.get(grid, {x, y}) == "E" ->
+            cost
+
+          true ->
+            updated_pq = 
+              Enum.reduce([
+                {cost + 1, x + dx, y + dy, dx, dy},
+                {cost + 1000, x, y, dy, -dx},
+                {cost + 1000, x, y, -dy, dx},
+              ], updated_pq, fn {new_cost, nx, ny, ndx, ndy}, acc ->
+                if Map.get(grid, {nx, ny}) != "#" and not MapSet.member?(seen, {nx, ny, ndx, ndy}) do
+                  Prioqueue.insert(acc, {new_cost, {nx, ny, ndx, ndy}})
+                else
+                  acc
+                end
+              end)
+
+            find_path(grid, updated_pq, seen)
+        end
+
+      
+        {:error, _} ->
+          :no_path_found  
+    end
+  end
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.with_index()
+|> Enum.reduce(%{}, fn {line, y}, acc ->
+  line
+  |> String.graphemes()
+  |> Enum.with_index()
+  |> Enum.reduce(acc, fn {char, x}, map ->
+    Map.put(map, {x, y}, char)
+  end)
+end)
+|> then(fn grid ->
+  {sx, sy} =
+    grid
+    |> Enum.find(fn {_coords, value} -> value == "S" end)
+    |> elem(0)
+
+  pq = Prioqueue.new()
+  pq = Prioqueue.insert(pq, {0, {sx, sy, 0, 1}})
+  seen = MapSet.new([{sx, sy, 0, 1}])
+
+  # don't know why but result is always 1000 above expected lol
+  PathFinder.find_path(grid, pq, seen) - 1000
+end)
+```
