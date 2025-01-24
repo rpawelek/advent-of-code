@@ -131,3 +131,152 @@ input
 |> Program.run_program()
 |> Enum.join(",")
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule ProgramPart2 do
+  def parse_input(input) do
+    [registers_str, program_str] = String.split(input, "\n\n", trim: true)
+
+    registers =
+      registers_str
+      |> String.split("\n")
+      |> Enum.reduce(%{}, fn register_str, acc ->
+        [name, value] = String.split(register_str, ": ", trim: true)
+        register_name = 
+          case String.downcase(name) do
+            "register a" -> :a
+            "register b" -> :b
+            "register c" -> :c
+            _ -> String.to_atom(name)
+          end
+        
+        Map.put(acc, register_name, String.to_integer(value))
+      end)
+
+    program_code =
+      program_str
+      |> String.replace(["Program: ", "\n"], "")
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.to_integer/1)
+
+    {program_code, registers}
+  end
+
+  def run_program({program_code, registers}) do
+    run_program(program_code, registers, 0, [])
+  end
+
+  defp run_program(program_code, registers, ip, out) do
+    if ip < length(program_code) do
+      opcode = Enum.at(program_code, ip)
+      operand = Enum.at(program_code, ip + 1)
+
+      case opcode do
+        0 ->
+          numerator = Map.get(registers, :a)
+          denominator = :math.pow(2, get_combo_value(operand, registers))
+          result = trunc(numerator / denominator)
+
+          run_program(program_code, Map.put(registers, :a, result), ip + 2, out)
+
+        1 ->
+          register_b_value = Map.get(registers, :b)
+          result = Bitwise.bxor(register_b_value, operand)
+
+          run_program(program_code, Map.put(registers, :b, result), ip + 2, out)
+
+        2 ->
+          combo_value = get_combo_value(operand, registers)
+          result = rem(combo_value, 8)
+
+          run_program(program_code, Map.put(registers, :b, result), ip + 2, out)
+
+        3 ->
+          if Map.get(registers, :a) == 0 do
+            run_program(program_code, registers, ip + 2, out)
+          else
+            run_program(program_code, registers, operand, out)
+          end
+
+        4 ->
+          register_b_value = Map.get(registers, :b)
+          register_c_value = Map.get(registers, :c)
+          result = Bitwise.bxor(register_b_value, register_c_value)
+
+          run_program(program_code, Map.put(registers, :b, result), ip + 2, out)
+
+        5 ->
+          combo_value = get_combo_value(operand, registers)
+          result = rem(combo_value, 8)
+
+          run_program(program_code, registers, ip + 2, out ++ [result])
+
+        6 ->
+          numerator = Map.get(registers, :a)
+          denominator = :math.pow(2, get_combo_value(operand, registers))
+          result = trunc(numerator / denominator)
+
+          run_program(program_code, Map.put(registers, :b, result), ip + 2, out)
+
+        7 ->
+          numerator = Map.get(registers, :a)
+          denominator = :math.pow(2, get_combo_value(operand, registers))
+          result = trunc(numerator / denominator)
+
+          run_program(program_code, Map.put(registers, :c, result), ip + 2, out)
+
+        _ -> run_program(program_code, registers, ip + 2, out)
+      end
+    else
+      out
+    end
+  end
+  
+  def get_combo_value(operand, registers) do
+    case operand do
+      0 -> 0
+      1 -> 1
+      2 -> 2
+      3 -> 3
+      4 -> Map.get(registers, :a)
+      5 -> Map.get(registers, :b)
+      6 -> Map.get(registers, :c)
+      _ -> -1
+    end
+  end
+
+  def find_initial_value({program_code, registers}) do
+    target_length = length(program_code)
+
+    Enum.reduce((target_length - 1)..0//-1, 0, fn i, acc ->
+      target = Enum.slice(program_code, i, target_length - i)
+
+      find_a_value(i, acc, registers, program_code, target)
+    end)
+  end
+
+  defp find_a_value(i, acc, registers, program_code, target, n \\ 0) do
+    candidate_a = Bitwise.bsl(n, i * 3) |> Bitwise.bor(acc)
+
+    updated_registers = Map.put(registers, :a, candidate_a)
+
+    result = run_program({program_code, updated_registers}) |> Enum.slice(i, length(target))
+
+    if result == target do
+      candidate_a
+    else
+      find_a_value(i, acc, registers, program_code, target, n + 1)
+    end
+  end
+end
+
+input
+|> ProgramPart2.parse_input()
+|> ProgramPart2.find_initial_value()
+```
