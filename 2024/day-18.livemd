@@ -1,0 +1,71 @@
+# Advent of Code 2024 - Day 18
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule ShortestPath do
+  def find_min_steps(disabled, grid_size, start, target) do
+    bfs(grid_size, start, target, MapSet.new(disabled))
+  end
+
+  defp bfs(grid_size, start, target, disabled) do
+    queue = :queue.in({start, 0}, :queue.new())
+    visited = MapSet.new([start])
+
+    bfs_loop(grid_size, target, disabled, queue, visited)
+  end
+
+  defp bfs_loop(grid_size, target, disabled, queue, visited) do
+    {{:value, {current, steps}}, queue} = :queue.out(queue)
+
+    if current == target do
+      steps
+    else
+      neighbors = get_neighbors(current, grid_size)
+      new_neighbors = Enum.filter(neighbors, fn neighbor ->
+        not MapSet.member?(visited, neighbor) and not MapSet.member?(disabled, neighbor)
+      end)
+
+      new_queue = Enum.reduce(new_neighbors, queue, fn neighbor, acc ->
+        :queue.in({neighbor, steps + 1}, acc)
+      end)
+
+      bfs_loop(grid_size, target, disabled, new_queue, MapSet.union(visited, MapSet.new(new_neighbors)))
+    end
+  end
+
+  defp get_neighbors({x, y}, {max_x, max_y}) do
+    [
+      {x - 1, y},
+      {x + 1, y},
+      {x, y - 1},
+      {x, y + 1}
+    ]
+    |> Enum.filter(fn {nx, ny} -> nx >= 0 and ny >= 0 and nx <= max_x and ny <= max_y end)
+  end
+end
+
+bytes_amount = 1024
+grid_size = {70, 70}
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(fn coords_str -> 
+  coords_str
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+  |> List.to_tuple()
+end)
+|> Enum.take(bytes_amount)
+|> ShortestPath.find_min_steps(grid_size, {0, 0}, grid_size)
+```
