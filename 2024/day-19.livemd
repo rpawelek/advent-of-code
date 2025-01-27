@@ -1,0 +1,50 @@
+# Advent of Code 2024 - Day 19
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"},
+  {:memoize, "~> 1.4"},
+])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule Combinations do
+  use Memoize
+  defmemo can_construct?("", _patterns), do: 1
+
+  defmemo can_construct?(design, patterns) do
+    patterns
+    |> Enum.any?(fn pattern ->
+      case String.starts_with?(design, pattern) do
+        true ->
+          rest = String.replace_prefix(design, pattern, "")
+          can_construct?(rest, patterns)
+
+        false ->
+          false
+      end
+    end)
+  end
+end
+
+
+input
+|> String.split("\n\n")
+|> then(fn [patterns_str, designs_str] ->
+  patterns = patterns_str |> String.split(", ")
+  designs = designs_str |> String.split("\n", trim: true)
+
+  Enum.map(designs, fn design ->
+    {design, Combinations.can_construct?(design, patterns)}
+  end)
+end)
+|> Enum.count(fn {_design, result} -> result end)
+```
