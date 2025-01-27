@@ -1,0 +1,69 @@
+# Advent of Code 2024 - Day 23
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule Gates do
+  def resolve(_map, value) when is_integer(value), do: value
+  def resolve(map, value) when is_bitstring(value) do
+    resolve(map, Map.get(map, value, 0))
+  end
+  def resolve(map, {"AND", x1, x2}) do
+    Bitwise.band(resolve(map, x1), resolve(map, x2))
+  end 
+  def resolve(map, {"OR", x1, x2}) do
+    Bitwise.bor(resolve(map, x1), resolve(map, x2))
+  end
+  def resolve(map, {"XOR", x1, x2}) do
+    Bitwise.bxor(resolve(map, x1), resolve(map, x2))
+  end 
+end
+
+input
+|> String.split("\n\n", trim: true)
+|> then(fn [initial_values, gates_str] ->
+  initial =
+    initial_values
+    |> String.split("\n")
+    |> Enum.map(fn wire ->
+      [name, value] = String.split(wire, ": ")
+      {name, String.to_integer(value)}
+    end)
+
+  gates =
+    gates_str
+    |> String.split("\n")
+    |> Enum.map(fn gate ->
+      [input1, gate_type, input2, _, wire] = String.split(gate)
+      {wire, {gate_type, input1, input2}}
+    end)
+
+  initial
+  |> Enum.concat(gates)
+  |> Map.new()
+end)
+|> then(fn map ->
+  map
+  |> Enum.filter(fn {wire, _} -> String.starts_with?(wire, "z") end)
+  |> Enum.map(fn {wire, value} ->
+    bit =
+      wire
+      |> String.slice(1, 2)
+      |> String.to_integer()
+  
+    value = Gates.resolve(map, value)
+    Bitwise.bsl(value, bit)
+  end)
+  |> Enum.sum()
+end)
+```
