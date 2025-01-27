@@ -87,3 +87,87 @@ end)
   |> Distance.count_cheats(100)
 end)
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule DistancePart2 do
+  def calculate_distances(grid, {x, y}, distances) do
+    directions = [
+      {-1, 0},
+      {1, 0},
+      {0, -1},
+      {0, 1},
+    ]
+    
+    directions
+    |> Enum.reduce(distances, fn {dx, dy}, acc ->
+      nx = x + dx
+      ny = y + dy
+
+      if Map.get(grid, {nx, ny}) != "#" and not Map.has_key?(acc, {nx, ny}) do
+        new_acc = Map.put(acc, {nx, ny}, Map.get(acc, {x, y}) + 1)
+
+        calculate_distances(grid, {nx, ny}, new_acc)
+      else
+        acc
+      end
+    end)
+  end
+
+  def count_cheats(distances, minimum_time, cheat_time) do
+    distances
+    |> Enum.reduce(0, fn {{x, y}, distance}, total ->
+      Enum.reduce(2..cheat_time, total, fn radius, acc ->
+        Enum.reduce(0..radius, acc, fn dx, inner_acc1 ->
+          dy = radius - dx
+
+          [
+            {x + dx, y + dy},
+            {x + dx, y - dy},
+            {x - dx, y + dy},
+            {x - dx, y - dy},
+          ]
+          |> Enum.uniq()
+          |> Enum.reduce(inner_acc1, fn {nx, ny}, inner_acc2 ->
+            if Map.has_key?(distances, {nx, ny}) do
+              new_pos_distance = Map.get(distances, {nx, ny})
+
+              if distance - new_pos_distance >= minimum_time + radius do
+                inner_acc2 + 1
+              else
+                inner_acc2
+              end
+            else
+              inner_acc2
+            end
+          end)
+        end)
+      end)
+    end)
+  end
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.with_index()
+|> Enum.flat_map(fn {row, x} ->
+  row
+  |> String.graphemes()
+  |> Enum.with_index()
+  |> Enum.map(fn {char, y} -> {{x, y}, char} end)
+end)
+|> Enum.into(%{})
+|> then(fn grid ->
+  start_position =
+    Enum.find(grid, fn {_, value} -> value == "S" end)
+    |> elem(0)
+
+  DistancePart2.calculate_distances(grid, start_position, Map.new([{start_position, 0}]))
+  |> DistancePart2.count_cheats(100, 20)
+end)
+```
