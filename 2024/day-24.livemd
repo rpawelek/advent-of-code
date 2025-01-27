@@ -67,3 +67,156 @@ end)
   |> Enum.sum()
 end)
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+# https://github.com/liamcmitchell/advent-of-code/blob/main/2024/24/solution.exs
+defmodule GatesPart2 do
+  def resolve(_map, value) when is_integer(value), do: value
+  def resolve(map, value) when is_bitstring(value) do
+    resolve(map, Map.get(map, value, 0))
+  end
+  def resolve(map, {"AND", x1, x2}) do
+    Bitwise.band(resolve(map, x1), resolve(map, x2))
+  end 
+  def resolve(map, {"OR", x1, x2}) do
+    Bitwise.bor(resolve(map, x1), resolve(map, x2))
+  end
+  def resolve(map, {"XOR", x1, x2}) do
+    Bitwise.bxor(resolve(map, x1), resolve(map, x2))
+  end
+
+  def resolve_tree(map, wire) do
+    case map do
+      %{^wire => {gate, x, y}} ->
+        op(gate, resolve_tree(map, x), resolve_tree(map, y))
+
+      _ ->
+        wire
+    end
+  end
+
+  def adder(0), do: op("XOR", x(0), y(0))
+  def adder(bit) do
+    op("XOR", op("XOR", x(bit), y(bit)), remainder(bit - 1))
+  end
+
+  def remainder(0), do: op("AND", x(0), y(0))
+  def remainder(bit) do
+    op(
+      "OR",
+      op("AND", x(bit), y(bit)),
+      op("AND", op("XOR", x(bit), y(bit)), remainder(bit - 1))
+    )
+  end
+
+  def pad(bit) do
+    bit
+    |> Integer.to_string()
+    |> String.pad_leading(2, "0")
+  end
+  
+  def x(bit), do: "x#{pad(bit)}"
+  def y(bit), do: "y#{pad(bit)}"
+
+  def op(gate, x, y), do: {gate, MapSet.new([x, y])}
+
+  def find_swap(wires, expected, actual) do
+    case wires do
+      %{^expected => x} ->
+        {x, Map.get(wires, actual)}
+
+      _ ->
+        [e1, e2] = expected |> elem(1) |> MapSet.to_list()
+        [a1, a2] = actual |> elem(1) |> MapSet.to_list()
+
+        cond do
+          e1 == a1 ->
+            find_swap(wires, e2, a2)
+
+          e1 == a2 ->
+            find_swap(wires, e2, a1)
+
+          e2 == a1 ->
+            find_swap(wires, e1, a2)
+
+          e2 == a2 ->
+            find_swap(wires, e1, a1)
+
+          true ->
+            nil
+        end
+    end
+  end
+end
+
+input
+|> String.split("\n\n", trim: true)
+|> then(fn [initial_values, gates_str] ->
+  initial =
+    initial_values
+    |> String.split("\n")
+    |> Enum.map(fn wire ->
+      [name, value] = String.split(wire, ": ")
+      {name, String.to_integer(value)}
+    end)
+
+  gates =
+    gates_str
+    |> String.split("\n")
+    |> Enum.map(fn gate ->
+      [input1, gate_type, input2, _, wire] = String.split(gate)
+      {wire, {gate_type, input1, input2}}
+    end)
+
+  initial
+  |> Enum.concat(gates)
+  |> Map.new()
+end)
+|> then(fn map ->
+  map
+  |> Map.keys()
+  |> Enum.filter(&String.starts_with?(&1, "z"))
+  |> Enum.sort()
+  |> Enum.reduce({[], map}, fn wire, {swapped, map} ->
+    bit =
+      wire
+      |> String.slice(1, 2)
+      |> String.to_integer()
+
+    expected = GatesPart2.adder(bit)
+    actual = GatesPart2.resolve_tree(map, wire)
+
+    if expected != actual do
+      wires =
+        map
+        |> Map.keys()
+        |> Enum.map(fn wire -> {GatesPart2.resolve_tree(map, wire), wire} end)
+        |> Map.new()
+
+      case GatesPart2.find_swap(wires, expected, actual) do
+        {x, y} ->
+          map =
+            map
+            |> Map.put(x, Map.get(map, y))
+            |> Map.put(y, Map.get(map, x))
+
+          {[x, y | swapped], map}
+
+        nil ->
+          {swapped, map}
+      end
+    else
+      {swapped, map}
+    end
+  end)
+  |> elem(0)
+  |> Enum.sort()
+  |> Enum.join(",")
+end)
+```
