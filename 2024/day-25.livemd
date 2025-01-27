@@ -1,0 +1,49 @@
+# Advent of Code 2024 - Day 25
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1 & 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n\n", trim: true)
+|> Enum.map(fn schematic ->
+  is_lock? = match?("#" <> _, schematic)
+
+  converted_schematic = 
+    schematic
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line ->
+      line
+      |> String.graphemes()
+      |> Enum.map(fn char ->
+        if char == "#" do 1 else 0 end
+      end)
+    end)
+    |> Enum.zip_reduce([], &[Enum.sum(&1) - 1 | &2])
+
+  {is_lock?, converted_schematic}
+end)
+|> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+|> then(fn %{false: keys, true: locks} ->
+  locks
+  |> Enum.flat_map(fn lock ->
+    keys
+    |> Enum.map(fn key ->
+      key
+      |> Enum.zip_with(lock, fn a, b -> a + b > 5 end)
+      |> Enum.any?(&(&1))
+    end)
+  end)
+  |> Enum.reject(&(&1))
+  |> Enum.count()
+end)
+```
