@@ -1,0 +1,43 @@
+# Advent of Code 2024 - Day 23
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n", trim: true)
+|> Enum.reduce(%{}, fn connection, connections ->
+  [computer1, computer2] = String.split(connection, "-")
+
+  connections
+  |> Map.update(computer1, [computer2], fn conns -> [computer2 | conns] end)
+  |> Map.update(computer2, [computer1], fn conns -> [computer1 | conns] end)
+end)
+|> then(fn network_map ->
+  network_map
+  |> Map.keys()
+  |> Enum.flat_map(fn computer1 ->
+    connections = Map.get(network_map, computer1, [])
+
+    for computer2 <- connections,
+        computer3 <- connections,
+        computer2 != computer3,
+        computer3 in Map.get(network_map, computer2, []),
+        do: Enum.sort([computer1, computer2, computer3])
+  end)
+  |> Enum.uniq()
+  |> Enum.filter(fn [a, b, c] ->
+    Enum.any?([a, b, c], fn name -> String.starts_with?(name, "t") end)
+  end)
+  |> Enum.count()
+end)
+```
