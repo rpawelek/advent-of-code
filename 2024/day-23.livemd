@@ -41,3 +41,45 @@ end)
   |> Enum.count()
 end)
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n", trim: true)
+|> Enum.reduce(%{}, fn connection, connections ->
+  [computer1, computer2] = String.split(connection, "-")
+
+  connections
+  |> Map.update(computer1, MapSet.new([computer2]), &MapSet.put(&1, computer2))
+  |> Map.update(computer2, MapSet.new([computer1]), &MapSet.put(&1, computer1))
+end)
+|> then(fn network_map ->
+  network_map
+  |> Enum.map(fn {computer1, connections1} ->
+    connections1
+    |> Enum.map(fn computer2 ->
+      network_map
+      |> Map.get(computer2)
+      |> MapSet.intersection(connections1)
+    end)
+    |> Enum.concat()
+    |> Enum.frequencies()
+    |> Enum.sort_by(&elem(&1, 1), :desc)
+    |> Enum.reduce(MapSet.new([computer1]), fn {computer, _}, group ->
+      if MapSet.subset?(group, Map.get(network_map, computer)) do
+        MapSet.put(group, computer)
+      else
+        group
+      end
+    end)
+  end)
+end)
+|> Enum.max_by(&MapSet.size/1)
+|> Enum.sort()
+|> Enum.join(",")
+```
