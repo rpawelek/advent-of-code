@@ -30,5 +30,5 @@ All solutions are coded in [Livebook](https://livebook.dev) using [Kino](https:/
 - [x] [Day 22](2024/day-22.livemd)
 - [x] [Day 23](2024/day-23.livemd)
 - [x] [Day 24](2024/day-24.livemd)
-- [x] [Day 25](2025/day-25.livemd)
+- [x] [Day 25](2024/day-25.livemd)
 
