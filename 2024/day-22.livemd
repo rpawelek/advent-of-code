@@ -1,0 +1,29 @@
+# Advent of Code 2024 - Day 22
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Enum.map(fn number ->
+  Enum.reduce(1..2000, number, fn _, current_num ->
+    current_num = rem(Bitwise.bxor(current_num, current_num * 64), 16777216)
+    current_num = rem(Bitwise.bxor(current_num, div(current_num, 32)), 16777216)
+    current_num = rem(Bitwise.bxor(current_num, current_num * 2048), 16777216)
+
+    current_num
+  end)
+end)
+|> Enum.sum()
+```
