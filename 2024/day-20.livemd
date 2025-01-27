@@ -1,0 +1,89 @@
+# Advent of Code 2024 - Day 20
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+
+kino_input = Kino.Input.textarea("Please paste your input file: ")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule Distance do
+  def calculate_distances(grid, {x, y}, distances) do
+    directions = [
+      {-1, 0},
+      {1, 0},
+      {0, -1},
+      {0, 1},
+    ]
+    
+    directions
+    |> Enum.reduce(distances, fn {dx, dy}, acc ->
+      nx = x + dx
+      ny = y + dy
+
+      if Map.get(grid, {nx, ny}) != "#" and not Map.has_key?(acc, {nx, ny}) do
+        new_acc = Map.put(acc, {nx, ny}, Map.get(acc, {x, y}) + 1)
+
+        calculate_distances(grid, {nx, ny}, new_acc)
+      else
+        acc
+      end
+    end)
+  end
+
+  def count_cheats(distances, minimum_time) do
+    directions = [
+      {2, 0},
+      {1, 1},
+      {0, 2},
+      {-1, 1},
+    ]
+    
+    distances
+    |> Enum.reduce(0, fn {{x, y}, distance}, total ->
+      directions
+      |> Enum.reduce(total, fn {dx, dy}, acc ->
+        nx = x + dx
+        ny = y + dy
+
+        if Map.has_key?(distances, {nx, ny}) do
+          new_pos_distance = Map.get(distances, {nx, ny})
+
+          if abs(distance - new_pos_distance) >= minimum_time + 2 do
+            acc + 1
+          else
+            acc
+          end
+        else
+          acc
+        end
+      end)
+    end)
+  end
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.with_index()
+|> Enum.flat_map(fn {row, x} ->
+  row
+  |> String.graphemes()
+  |> Enum.with_index()
+  |> Enum.map(fn {char, y} -> {{x, y}, char} end)
+end)
+|> Enum.into(%{})
+|> then(fn grid ->
+  start_position =
+    Enum.find(grid, fn {_, value} -> value == "S" end)
+    |> elem(0)
+
+  Distance.calculate_distances(grid, start_position, Map.new([{start_position, 0}]))
+  |> Distance.count_cheats(100)
+end)
+```
