@@ -18,7 +18,7 @@ input = Kino.Input.read(kino_input)
 
 defmodule Combinations do
   use Memoize
-  defmemo can_construct?("", _patterns), do: 1
+  defmemo can_construct?("", _patterns), do: true
 
   defmemo can_construct?(design, patterns) do
     patterns
@@ -47,4 +47,43 @@ input
   end)
 end)
 |> Enum.count(fn {_design, result} -> result end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+defmodule CombinationsPart2 do
+  use Memoize
+  defmemo count_ways("", _patterns), do: 1
+
+  defmemo count_ways(design, patterns) do
+    patterns
+    |> Enum.reduce(0, fn pattern, total ->
+      if String.starts_with?(design, pattern) do
+        rest = String.replace_prefix(design, pattern, "")
+        total + count_ways(rest, patterns)
+      else
+        total
+      end
+    end)
+  end
+end
+
+
+input
+|> String.split("\n\n")
+|> then(fn [patterns_str, designs_str] ->
+  patterns = patterns_str |> String.split(", ")
+  designs = designs_str |> String.split("\n", trim: true)
+
+  Enum.map(designs, fn design ->
+    {design, CombinationsPart2.count_ways(design, patterns)}
+  end)
+end)
+|> Enum.map(fn {_design, number_of_ways} -> number_of_ways end)
+|> Enum.sum()
 ```
