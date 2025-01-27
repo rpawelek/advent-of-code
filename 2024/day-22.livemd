@@ -27,3 +27,41 @@ input
 end)
 |> Enum.sum()
 ```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.read(kino_input)
+
+step = fn secret_num ->
+  secret_num = rem(Bitwise.bxor(secret_num, secret_num * 64), 16777216)
+  secret_num = rem(Bitwise.bxor(secret_num, div(secret_num, 32)), 16777216)
+  secret_num = rem(Bitwise.bxor(secret_num, secret_num * 2048), 16777216)
+
+  secret_num
+end
+
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Enum.map(fn secret_num ->
+  1..2000
+  |> Enum.map_reduce(secret_num, fn _, current_num ->
+    {rem(current_num, 10), step.(current_num)}
+  end)
+  |> elem(0)
+  |> Enum.chunk_every(5, 1, :discard)
+  |> Enum.reduce(%{}, fn [a, b, c, d, total_price], changes ->
+    Map.put_new(changes, {b - a, c - b, d - c, total_price - d}, total_price)
+  end)
+end)
+|> Enum.reduce(fn map1, map2 ->
+  Map.merge(map1, map2, fn _, val1, val2 ->
+    val1 + val2
+  end)
+end)
+|> Enum.max_by(fn {_seq, total_price} -> total_price end)
+|> elem(1)
+```
