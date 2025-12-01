@@ -19,17 +19,23 @@ int main(void) {
             return 1;
         }
 
+        int passes = 0;
         if (direction == 'L') {
-            dial = (dial - steps) % 100;
+            for (int i = 1; i <= steps; ++i) {
+                dial = (dial - 1 + 100) % 100;
+                if (dial == 0) ++passes;
+            }
         } else if (direction == 'R') {
-            dial = (dial + steps) % 100;
+            for (int i = 1; i <= steps; ++i) {
+                dial = (dial + 1) % 100;
+                if (dial == 0) ++passes;
+            }
         } else {
             printf("Invalid direction\n");
             return 1;
         }
 
-        if (dial == 0)
-            ++password;
+        password += passes;
     }
 
     printf("Password: %d\n", password);
