@@ -17,15 +17,26 @@ int main(void) {
             }
         }
 
-        int best = -1;
+        int stack[512];
+        int top = 0;
+        int max_remove_amount = n - 12;
+
         for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                int val = digits[i] * 10 + digits[j];
-                if (val > best) best = val;
+            while (top > 0 && stack[top - 1] < digits[i] && max_remove_amount > 0) {
+                top--;
+                max_remove_amount--;
             }
+
+            stack[top++] = digits[i];
         }
 
-        sum += best;
+        top = 12;
+        long val = 0;
+        for (int i = 0; i < 12; ++i) {
+            val = val * 10 + stack[i];
+        }
+
+        sum += val;
     }
 
     printf("Total output joltage: %ld\n", sum);
