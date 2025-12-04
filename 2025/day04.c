@@ -21,7 +21,6 @@ int check_neighbors(char **grid, int row_count, int col_count, int r, int c) {
 }
 
 int main(void) {
-    int sum = 0;
     char **grid = NULL;
     char buf[1024] = {};
 
@@ -50,17 +49,38 @@ int main(void) {
         ++row_count;
     }
 
-    for (int r = 0; r < row_count; ++r) {
-        for (int c = 0; c < col_count; ++c) {
-            if (grid[r][c] != '@') continue;
+    int total_removed_count = 0;
+    int rolls_removed_in_round = 0;
+    int removable_cells[100][2];
 
-            int paper_rolls_count = check_neighbors(grid, row_count, col_count, r, c);
-            if (paper_rolls_count >= 4) continue;
+    do {
+        rolls_removed_in_round = 0;
+        int removable_count = 0;
 
-            ++sum;
+        for (int r = 0; r < row_count; ++r) {
+            for (int c = 0; c < col_count; ++c) {
+                if (grid[r][c] != '@') continue;
+
+                int paper_rolls_count = check_neighbors(grid, row_count, col_count, r, c);
+                if (paper_rolls_count < 4) {
+                    removable_cells[removable_count][0] = r;
+                    removable_cells[removable_count][1] = c;
+                    removable_count++;
+                }
+            }
         }
-    }
 
+        if (removable_count > 0) {
+            rolls_removed_in_round = removable_count;
+            total_removed_count += rolls_removed_in_round;
+
+            for (int i = 0; i < removable_count; ++i) {
+                int r = removable_cells[i][0];
+                int c = removable_cells[i][1];
+                grid[r][c] = 'x';
+            }
+        }
+    } while (rolls_removed_in_round > 0);
 
     for (int r = 0; r < row_count; ++r) {
         free(grid[r]);
@@ -68,7 +88,7 @@ int main(void) {
     free(grid);
     grid = NULL;
 
-    printf("Amount of paper rolls that can be accessed: %d\n", sum);
+    printf("Amount of paper rolls that can be removed: %d\n", total_removed_count);
 
     return 0;
 }
